@@ -44,6 +44,15 @@ public sealed class PaymentFailedEvent(
     public PaymentStatus Status { get; } = status;
 }
 
+public sealed class PaymentDroppedEvent(
+    Guid paymentId, Guid enrollmentId, DateTime droppedAt, PaymentStatus status) : BaseEvent
+{
+    public Guid PaymentId { get; } = paymentId;
+    public Guid EnrollmentId { get; } = enrollmentId;
+    public DateTime DroppedAt { get; } = droppedAt;
+    public PaymentStatus Status { get; } = status;
+}
+
 public sealed class PaymentRefundedEvent(
     Guid userId, Guid enrollmentId, DateTime refundedAt, PaymentStatus status) : BaseEvent
 {

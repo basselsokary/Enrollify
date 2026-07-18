@@ -75,6 +75,14 @@ public class Payment : BaseAuditableEntity, IAggregateRoot
         return Result.Success();
     }
 
+    public Result Drop()
+    {
+        Status = PaymentStatus.Dropped;
+
+        RaiseDomainEvent(new PaymentDroppedEvent(Id, EnrollmentId, DateTime.UtcNow, Status));
+        return Result.Success();
+    }
+
     public Result Refund()
     {
         if (AmountRefunded.HasValue)
