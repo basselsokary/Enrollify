@@ -22,6 +22,14 @@ internal sealed class DropCourseCommandHandler(
         var dropResult = enrollment.Drop();
         if (dropResult.Failed)
             return dropResult.Error;
+        
+        var payment = await unitOfWork.Payments.GetByEnrollmentIdAsync(enrollment.Id, cancellationToken);
+        if (payment is not null)
+        {
+            var dropPaymentResult = payment.Drop();
+            if (dropPaymentResult.Failed)
+                return dropPaymentResult.Error;
+        }
 
         await unitOfWork.DeleteAsync(enrollment);
         await unitOfWork.SaveChangesAsync(cancellationToken);
