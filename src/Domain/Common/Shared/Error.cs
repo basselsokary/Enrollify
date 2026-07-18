@@ -15,9 +15,6 @@ public record Error
 
     public static readonly Error None = new(string.Empty, string.Empty, ErrorType.Failure);
 
-    public static Error General(string message) =>
-        new("General.Error", message, ErrorType.General);
-
     public static Error Failure(string code, string message) =>
         new(code, message, ErrorType.Failure);
 
