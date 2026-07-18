@@ -35,43 +35,6 @@ public sealed class Money : ValueObject
         return new Money(amount, currency.ToUpperInvariant());
     }
 
-    public Result<Money> Add(Money other)
-    {
-        if (Currency != other.Currency)
-            return MoneyErrors.CurrencyMismatch;
-
-        return new Money(Amount + other.Amount, Currency);
-    }
-
-    /// <summary>
-    /// This method does not handle currency conversion. It assumes both Money instances are in the same currency.
-    /// </summary>
-    public Money Add(decimal amount)
-    {
-        return new Money(Amount + amount, Currency);
-    }
-
-    public Result<Money> Subtract(Money other)
-    {
-        if (Currency != other.Currency)
-            return MoneyErrors.CurrencyMismatch;
-
-        return new Money(Amount - other.Amount, Currency);
-    }
-
-    public Money Multiply(decimal factor)
-    {
-        return new Money(Amount * factor, Currency);
-    }
-
-    public Result<Money> Divide(decimal divisor)
-    {
-        if (divisor == 0)
-            return MoneyErrors.DivisionByZero;
-
-        return new Money(Amount / divisor, Currency);
-    }
-
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Amount;
@@ -101,7 +64,4 @@ public static class MoneyErrors
 
     public static Error CurrencyMismatch =>
         Error.Validation("MONEY_CURRENCY_MISMATCH", "Cannot operate on different currencies.");
-
-    public static Error DivisionByZero =>
-        Error.Validation("MONEY_DIVISION_BY_ZERO", "Cannot divide by zero.");
 }
