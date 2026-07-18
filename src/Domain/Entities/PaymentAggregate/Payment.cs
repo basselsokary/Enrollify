@@ -7,33 +7,61 @@ namespace Domain.Entities.PaymentAggregate;
 
 public class Payment : BaseAuditableEntity, IAggregateRoot
 {
-    public Money Amount { get; private set; }
+    public Guid UserId { get; set; }
+    public Guid EnrollmentId { get; private set; }
+    public string PaymentIntentId { get; private set; } = null!;
+    
+    public Money Money { get; private set; } = null!;
     public PaymentMethod PaymentMethod { get; private set; }
     public PaymentStatus Status { get; private set; }
-    public string? PaymentIntentId { get; private set; }
-    public Guid EnrollmentId { get; private set; }
 
-    private Payment(Guid enrollmentId, Money money, PaymentMethod paymentMethod)
-    {
-        Amount = money;
-        PaymentMethod = paymentMethod;
-        Status = PaymentStatus.Pending;
-        EnrollmentId = enrollmentId;
-    }
+    public decimal? AmountRefunded { get; private set; }
+    public DateTime? PaidAt { get; private set; }
 
-    public static Result<Payment> Create(Guid enrollmentId, Money money, PaymentMethod paymentMethod)
+    private Payment() { }
+
+    public static Result<Payment> Create(
+        Guid userId,
+        Guid enrollmentId,
+        string paymentIntentId,
+        Money money,
+        PaymentMethod paymentMethod,
+        string courseTitle)
     {
-        var payment = new Payment(enrollmentId, money, paymentMethod);
+        var payment = new Payment
+        {
+            UserId = userId,
+            EnrollmentId = enrollmentId,
+            PaymentIntentId = paymentIntentId,
+            Money = money,
+            PaymentMethod = paymentMethod,
+            Status = PaymentStatus.Pending,
+        };
+
+        payment.RaiseDomainEvent(new PaymentCreatedEvent(
+            payment.Id,
+            userId,
+            enrollmentId,
+            paymentIntentId,
+            courseTitle,
+            money.Amount,
+            money.Currency,
+            paymentMethod,
+            payment.Status,
+            DateTime.UtcNow));
+
         return Result.Success(payment);
     }
 
-    public Result Complete()
+    public void Complete()
     {
-        if (Status != PaymentStatus.Pending)
-            return Result.Failure(PaymentErrors.PaymentAlreadyProcessed);
+        if (Status == PaymentStatus.Completed)
+            return; // Payment is already completed, no action needed.
 
         Status = PaymentStatus.Completed;
-        return Result.Success();
+        PaidAt = DateTime.UtcNow;
+
+        RaiseDomainEvent(new PaymentCompletedEvent(UserId, EnrollmentId, PaidAt.Value, Status));
     }
 
     public Result Fail()
@@ -42,15 +70,28 @@ public class Payment : BaseAuditableEntity, IAggregateRoot
             return Result.Failure(PaymentErrors.PaymentAlreadyProcessed);
 
         Status = PaymentStatus.Failed;
+
+        RaiseDomainEvent(new PaymentFailedEvent(UserId, EnrollmentId, DateTime.UtcNow, Status));
         return Result.Success();
     }
 
     public Result Refund()
     {
-        if (Status != PaymentStatus.Completed)
+        if (AmountRefunded.HasValue)
+            return Result.Failure(PaymentErrors.AlreadyRefunded);
+        
+        if (Status == PaymentStatus.Failed)
             return Result.Failure(PaymentErrors.NotEligibleForRefund);
 
+        AmountRefunded = Money.Amount;
         Status = PaymentStatus.Refunded;
+
+        RaiseDomainEvent(new PaymentRefundedEvent(UserId, EnrollmentId, DateTime.UtcNow, Status));
         return Result.Success();
+    }
+
+    public bool IsEligibleForRefund()
+    {
+        return Status == PaymentStatus.Completed && !AmountRefunded.HasValue;
     }
 }

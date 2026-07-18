@@ -7,3 +7,8 @@ public enum PaymentStatus
     Failed,
     Refunded
 }
+
+public enum PaymentMethod
+{
+    CreditCard
+}
