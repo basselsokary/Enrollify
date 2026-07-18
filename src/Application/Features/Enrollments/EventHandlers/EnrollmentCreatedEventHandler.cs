@@ -5,8 +5,9 @@ using Domain.Entities.EnrollmentAggregate;
 
 namespace Application.Features.Enrollments.EventHandlers;
 
-internal sealed class EnrollmentCreateEventHandler(
-    IUserEnrollmentReadRepository readRepository) : IDomainEventHandler<EnrollmentCreatedEvent>
+internal sealed class EnrollmentCreatedEventHandler(
+    IUserEnrollmentReadRepository userEnrollmentReadRepository,
+    ICourseReadRepository courseReadRepository) : IDomainEventHandler<EnrollmentCreatedEvent>
 {
     public async Task HandleAsync(EnrollmentCreatedEvent notification, CancellationToken cancellationToken = default)
     {
@@ -22,6 +23,7 @@ internal sealed class EnrollmentCreateEventHandler(
             ExpiresAt = notification.ExpiresAt
         };
 
-        await readRepository.AddAsync(userEnrollmentDocument, cancellationToken);
+        await userEnrollmentReadRepository.AddAsync(userEnrollmentDocument, cancellationToken);
+        await courseReadRepository.IncrementEnrollmentCountAsync(notification.CourseId, cancellationToken);
     }
 }

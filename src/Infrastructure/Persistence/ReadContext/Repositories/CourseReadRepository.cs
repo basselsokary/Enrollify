@@ -16,6 +16,13 @@ internal sealed class CourseReadRepository(MongoDbContext context) : ICourseRead
         await _collection.InsertOneAsync(courseDocument, cancellationToken: cancellationToken);
     }
 
+    public async Task IncrementEnrollmentCountAsync(Guid courseId, CancellationToken cancellationToken)
+    {
+        var update = Builders<CourseDocument>.Update.Inc(x => x.EnrolledCount, 1);
+
+        await _collection.UpdateOneAsync(x => x.Id == courseId, update, cancellationToken: cancellationToken);
+    }
+
     public async Task<GetCourseByIdResponse?> GetCourseByIdAsync(Guid courseId, CancellationToken cancellationToken)
     {
         var course = await _collection.Find(x => x.Id == courseId)

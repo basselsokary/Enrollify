@@ -14,4 +14,5 @@ public interface ICourseReadRepository
         CancellationToken cancellationToken);
     
     Task AddAsync(CourseDocument courseDocument, CancellationToken cancellationToken);
+    Task IncrementEnrollmentCountAsync(Guid courseId, CancellationToken cancellationToken);
 }
