@@ -1,4 +1,5 @@
 using API.Controllers.Base;
+using API.Dtos;
 using Application.Common.Interfaces.Messaging;
 using Application.Contracts.Common;
 using Application.Features.Courses.Queries;
@@ -22,11 +23,11 @@ public class CoursesController : ApiBaseController
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<GetCoursesResponse>>> GetCourses(
-        [FromQuery] PagingParameters paging,
+        [FromQuery] PagingParametersRequest paging,
         [FromServices] IQueryHandler<GetCoursesQuery, PagedResult<GetCoursesResponse>> queryHandler,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetCoursesQuery(paging);
+        var query = new GetCoursesQuery(new PagingParameters(paging.Page, paging.PageSize));
         var result = await queryHandler.HandleAsync(query, cancellationToken);
         return HandleResult(result);
     }

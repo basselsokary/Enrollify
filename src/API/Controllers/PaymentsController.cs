@@ -1,4 +1,5 @@
 using API.Controllers.Base;
+using API.Dtos;
 using Application.Common.Interfaces.Messaging;
 using Application.Contracts.Common;
 using Application.Features.Payments.Commands;
@@ -15,10 +16,10 @@ public class PaymentsController : ApiBaseController
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserPaymentResponse>>> GetPayments(
         [FromServices] IQueryHandler<GetPaymentsByUserIdQuery, PagedResult<UserPaymentResponse>> queryHandler,
-        [FromQuery] PagingParameters paging,
+        [FromQuery] PagingParametersRequest paging,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetPaymentsByUserIdQuery(paging);
+        var query = new GetPaymentsByUserIdQuery(new PagingParameters(paging.Page, paging.PageSize));
         var result = await queryHandler.HandleAsync(query, cancellationToken);
         return HandleResult(result);
     }

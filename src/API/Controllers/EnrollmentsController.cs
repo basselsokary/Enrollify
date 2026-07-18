@@ -1,4 +1,5 @@
 using API.Controllers.Base;
+using API.Dtos;
 using Application.Common.Interfaces.Messaging;
 using Application.Contracts.Common;
 using Application.Features.Enrollments.Commands;
@@ -25,11 +26,11 @@ public class EnrollmentsController : ApiBaseController
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserEnrollmentsResponse>>> GetUserEnrollments(
-        [FromQuery] PagingParameters paging,
+        [FromQuery] PagingParametersRequest paging,
         [FromServices] IQueryHandler<GetEnrollmentsByUserIdQuery, PagedResult<UserEnrollmentsResponse>> queryHandler,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetEnrollmentsByUserIdQuery(paging);
+        var query = new GetEnrollmentsByUserIdQuery(new PagingParameters(paging.Page, paging.PageSize));
         var result = await queryHandler.HandleAsync(query, cancellationToken);
         return HandleResult(result);
     }
