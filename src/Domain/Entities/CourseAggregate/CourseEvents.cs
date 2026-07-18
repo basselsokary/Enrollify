@@ -1,10 +1,23 @@
 using Domain.Common;
-using Domain.ValueObjects;
 
 namespace Domain.Entities.CourseAggregate;
 
-public class CourseCreatedEvent(string title, Money? price) : BaseEvent
+public sealed class CourseCreatedEvent(
+    Guid id,
+    string title,
+    string description,
+    decimal? priceAmount,
+    string? priceCurrency,
+    int durationInMinutes,
+    DateTime CreatedAt,
+    DateTime? LastModifiedAt) : BaseEvent
 {
-    public string Title { get; private set; } = title;
-    public Money? Price { get; private set; } = price;
+    public Guid Id { get; init; } = id;
+    public string Title { get; init; } = title;
+    public string Description { get; init; } = description;
+    public decimal? PriceAmount { get; init; } = priceAmount;
+    public string? PriceCurrency { get; init; } = priceCurrency;
+    public int DurationInMinutes { get; init; } = durationInMinutes;
+    public DateTime CreatedAt { get; init; } = CreatedAt;
+    public DateTime? LastModifiedAt { get; init; } = LastModifiedAt;
 }

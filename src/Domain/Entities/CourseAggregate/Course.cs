@@ -7,42 +7,56 @@ namespace Domain.Entities.CourseAggregate;
 
 public class Course : BaseAuditableEntity, IAggregateRoot, ISoftDelete
 {
+    private Course() { }
+
     public string Title { get; private set; } = null!;
     public string Description { get; private set; } = null!;
+    public int DurationInMinutes { get; private set; }
+    public CourseType Type { get; private set; }
     public Money? Price { get; private set; }
-    public int? Capacity { get; private set; }
-    public bool? IsDeleted { get; set; }
+    public bool IsDeleted { get; set; }
 
-    private Course() { }
-    private Course(string title, string description, int? capacity, Money? price)
-    {
-        Title = title;
-        Description = description;
-        Price = price;
-        Capacity = capacity;
-    }
-
-    public static Result<Course> Create(string title, string description, int? capacity, Money? price)
+    public static Result<Course> Create(
+        string title,
+        string description,
+        int durationInMinutes,
+        CourseType type,
+        Money? price)
     {
         if (string.IsNullOrWhiteSpace(title))
-            return Result.Failure<Course>(CourseErrors.TitleRequired);
+            return CourseErrors.TitleRequired;
 
         if (string.IsNullOrWhiteSpace(description))
-            return Result.Failure<Course>(CourseErrors.DescriptionRequired);
+            return CourseErrors.DescriptionRequired;
 
-        if (capacity.HasValue && capacity <= 0)
-            return Result.Failure<Course>(CourseErrors.CapacityMustBeGreaterThanZero);
+        if (durationInMinutes <= 0)
+            return CourseErrors.DurationMustBeGreaterThanZero;
 
-        var course = new Course(title, description, capacity, price);
-        course.RaiseDomainEvent(new CourseCreatedEvent(title, price));
+        var course = new Course
+        {
+            Title = title,
+            Description = description,
+            DurationInMinutes = durationInMinutes,
+            Type = type,
+            Price = price,
+            IsDeleted = false
+        };
+
+        course.RaiseDomainEvent(new CourseCreatedEvent(
+            course.Id,
+            course.Title,
+            course.Description,
+            course.Price?.Amount,
+            course.Price?.Currency,
+            course.DurationInMinutes,
+            DateTime.UtcNow,
+            course.LastModifiedAt));
         
         return Result.Success(course);
     }
 
-    public void Delete()
+    public bool IsFree()
     {
-        IsDeleted = true;
-        // RaiseDomainEvent(new CourseDeletedEvent(Title));
+        return Price is null || Price.Amount <= 0;
     }
-    
 }

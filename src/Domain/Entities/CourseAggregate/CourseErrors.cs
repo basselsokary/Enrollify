@@ -12,8 +12,6 @@ public class CourseErrors
         Error.Validation("Course.Title.Required", "Course title cannot be empty.");
     public static Error DescriptionRequired =>
         Error.Validation("Course.Description.Required", "Course description cannot be empty.");
-    public static Error PriceRequired =>
-        Error.Validation("Course.Price.Required", "Course price must be greater than zero.");
-    public static Error CapacityMustBeGreaterThanZero =>
-        Error.Validation("Course.Capacity.MustBeGreaterThanZero", "Course capacity must be greater than zero.");
+    public static Error DurationMustBeGreaterThanZero =>
+        Error.Validation("Course.Duration.MustBeGreaterThanZero", "Course duration must be greater than zero.");
 }
