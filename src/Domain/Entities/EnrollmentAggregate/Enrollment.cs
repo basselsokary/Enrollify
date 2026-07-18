@@ -50,7 +50,7 @@ public class Enrollment : BaseAuditableEntity, IAggregateRoot
             return;
 
         Status = EnrollmentStatus.Confirmed;
-        RaiseDomainEvent(new EnrollmentActivatedEvent(UserId, CourseId));
+        RaiseDomainEvent(new EnrollmentActivatedEvent(Id, UserId, CourseId));
     }
 
     public Result MarkAsRefunded(Guid paymentId, string refundedAmount)

@@ -2,6 +2,7 @@ using Application.Common.Interfaces.ReadRepositories;
 using Application.Common.ReadModels;
 using Application.Contracts.Common;
 using Application.Features.Enrollments.Queries;
+using Domain.Entities.EnrollmentAggregate;
 using MongoDB.Driver;
 
 namespace Infrastructure.Persistence.ReadContext.Repositories;
@@ -28,6 +29,12 @@ internal sealed class UserEnrollmentReadRepository(MongoDbContext context) : IUs
             x => x.Id == userEnrollmentDocument.Id,
             userEnrollmentDocument,
             cancellationToken: cancellationToken);
+    }
+
+    public Task UpdateStatusAsync(Guid enrollmentId, EnrollmentStatus status, CancellationToken cancellationToken)
+    {
+        var update = Builders<UserEnrollmentDocument>.Update.Set(x => x.Status, status);
+        return _collection.UpdateOneAsync(x => x.Id == enrollmentId, update, cancellationToken: cancellationToken);
     }
 
     public async Task<UserEnrollmentDocument?> GetByIdAsync(Guid enrollmentId, CancellationToken cancellationToken)

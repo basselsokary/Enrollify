@@ -19,8 +19,7 @@ internal sealed class EnrollmentRepository(WriteDbContext context)
         return await DbContext.Enrollments
             .AnyAsync(
                 e => e.CourseId == courseId
-                    && e.UserId == userId
-                    && e.Status == EnrollmentStatus.Confirmed,
+                    && e.UserId == userId,
                 cancellationToken);
     }
 }

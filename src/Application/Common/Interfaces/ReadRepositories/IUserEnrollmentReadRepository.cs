@@ -1,6 +1,7 @@
 using Application.Common.ReadModels;
 using Application.Contracts.Common;
 using Application.Features.Enrollments.Queries;
+using Domain.Entities.EnrollmentAggregate;
 
 namespace Application.Common.Interfaces.ReadRepositories;
 
@@ -19,4 +20,5 @@ public interface IUserEnrollmentReadRepository
     Task AddAsync(UserEnrollmentDocument userEnrollmentDocument, CancellationToken cancellationToken);
     Task DeleteAsync(Guid enrollmentId, CancellationToken cancellationToken);
     Task UpdateAsync(UserEnrollmentDocument userEnrollmentDocument, CancellationToken cancellationToken);
+    Task UpdateStatusAsync(Guid enrollmentId, EnrollmentStatus status, CancellationToken cancellationToken);
 }

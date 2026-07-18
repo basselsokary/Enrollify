@@ -22,8 +22,9 @@ public sealed class EnrollmentCreatedEvent(
     public DateTime? ExpiresAt { get; } = expiresAt;
 }
 
-public sealed class EnrollmentActivatedEvent(Guid userId, Guid CourseId) : BaseEvent
+public sealed class EnrollmentActivatedEvent(Guid enrollmentId, Guid userId, Guid CourseId) : BaseEvent
 {
+    public Guid EnrollmentId { get; } = enrollmentId;
     public Guid UserId { get; } = userId;
     public Guid CourseId { get; } = CourseId;
 }
