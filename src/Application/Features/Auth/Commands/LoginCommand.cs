@@ -1,5 +1,4 @@
 using Application.Common.Interfaces.Authentication;
-using Application.Common.Interfaces.Infrastructure;
 using Domain.Common;
 using Domain.Common.Constants;
 using FluentValidation;
@@ -11,8 +10,7 @@ public sealed record LoginCommand(
     string Password) : ICommand<LoginResponse>;
 
 public sealed class LoginCommandHandler(
-    IIdentityService identityService,
-    ICacheService cacheService) : ICommandHandler<LoginCommand, LoginResponse>
+    IIdentityService identityService) : ICommandHandler<LoginCommand, LoginResponse>
 {
     public async Task<Result<LoginResponse>> HandleAsync(LoginCommand command, CancellationToken cancellationToken)
     {
@@ -22,8 +20,6 @@ public sealed class LoginCommandHandler(
 
         if (result.Failed)
             return result.To<LoginResponse>();
-        
-        await cacheService.RemoveByIdAsync("user-management", result.Value.UserId.ToString()); // Here for now
 
         return new LoginResponse(
             result.Value.AccessToken,
