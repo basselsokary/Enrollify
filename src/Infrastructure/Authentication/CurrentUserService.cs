@@ -1,5 +1,4 @@
 ﻿using Application.Common.Interfaces.Authentication;
-using Application.Contracts.Users;
 using Microsoft.AspNetCore.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
