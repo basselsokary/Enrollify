@@ -1,9 +1,9 @@
 namespace Domain.Entities.EnrollmentAggregate;
 
-public enum EnrollStatus
+public enum EnrollmentStatus
 {
     Pending,
     Confirmed,
-    Rejected,
-    Cancelled
+    PaymentFailed,
+    Dropped
 }

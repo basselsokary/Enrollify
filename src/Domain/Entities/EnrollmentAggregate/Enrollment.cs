@@ -7,24 +7,15 @@ namespace Domain.Entities.EnrollmentAggregate;
 
 public class Enrollment : BaseAuditableEntity, IAggregateRoot
 {
+    private Enrollment() {}
+
     public Guid UserId { get; private set; }
     public Guid CourseId { get; private set; }
-    public EnrollStatus Status { get; private set; }
-    public DateTime EnrollmentAt { get; private set; }
+    public EnrollmentStatus Status { get; private set; }
     
-    public DateTime? PaidAt { get; private set; }
+    public DateTime? ExpiresAt { get; private set; }
 
-    private Enrollment() {}
-    private Enrollment(Guid userId, Guid courseId)
-    {
-        UserId = userId;
-        CourseId = courseId;
-        EnrollmentAt = DateTime.UtcNow;
-        Status = EnrollStatus.Pending;
-        PaidAt = null;
-    }
-
-    public static Result<Enrollment> Create(Guid userId, Guid courseId)
+    public static Result<Enrollment> Create(Guid userId, Guid courseId, string courseTitle, string? paidAmount)
     {
         if (userId == Guid.Empty)
             return EnrollmentErrors.UserIdRequired;
@@ -32,39 +23,72 @@ public class Enrollment : BaseAuditableEntity, IAggregateRoot
         if (courseId == Guid.Empty)
             return EnrollmentErrors.CourseIdRequired;
 
-        var enrollment = new Enrollment(userId, courseId);
-        enrollment.RaiseDomainEvent(new EnrollmentCreatedEvent(enrollment.EnrollmentAt, enrollment.Status));
+        var enrollment = new Enrollment
+        {
+            UserId = userId,
+            CourseId = courseId,
+            Status = EnrollmentStatus.Pending,
+            ExpiresAt = null
+        };
+
+        enrollment.RaiseDomainEvent(new EnrollmentCreatedEvent(
+            enrollment.Id,
+            enrollment.UserId,
+            enrollment.CourseId,
+            courseTitle,
+            paidAmount,
+            enrollment.Status,
+            DateTime.UtcNow,
+            enrollment.ExpiresAt));
         
         return Result.Success(enrollment);
     }
 
-    public Result<Enrollment> MarkAsPaid()
+    public void Activate()
     {
-        if (!IsEligibleForPayment())
-            return EnrollmentErrors.AlreadyPaid;
+        if (Status == EnrollmentStatus.Confirmed)
+            return;
 
-        Status = EnrollStatus.Confirmed;
-        PaidAt = DateTime.UtcNow;
-
-        // RaiseDomainEvent(new EnrollmentPaidEvent(PaidAt, paymentId));
-        
-        return Result.Success(this);
+        Status = EnrollmentStatus.Confirmed;
+        RaiseDomainEvent(new EnrollmentActivatedEvent(UserId, CourseId));
     }
 
-    public Result<Enrollment> MarkAsRefunded()
+    public Result MarkAsRefunded(Guid paymentId, string refundedAmount)
     {
         if (!IsEligibleForRefund())
             return PaymentErrors.NotEligibleForRefund;
 
-        Status = EnrollStatus.Cancelled;
-        PaidAt = null;
+        Status = EnrollmentStatus.Dropped;
 
-        // RaiseDomainEvent(new EnrollmentRefundedEvent(DateTime.UtcNow, paymentId));
+        RaiseDomainEvent(new EnrollmentRefundedEvent(Id, paymentId, DateTime.UtcNow, refundedAmount, Status));
         
         return Result.Success(this);
     }
 
-    public bool IsEligibleForPayment() => Status == EnrollStatus.Pending;
+    public Result Fail()
+    {
+        if (Status != EnrollmentStatus.Confirmed)
+            return EnrollmentErrors.AlreadyPaid;
 
-    public bool IsEligibleForRefund() => Status == EnrollStatus.Confirmed;
+        Status = EnrollmentStatus.PaymentFailed;
+        RaiseDomainEvent(new EnrollmentRejectedEvent(UserId, CourseId, DateTime.UtcNow, Status));
+        return Result.Success();
+    }
+
+    public void Enroll()
+    {
+        RaiseDomainEvent(new EnrollmentEnrolledEvent(Id, DateTime.UtcNow, Status));
+    }
+
+    public Result Drop()
+    {
+        if (Status == EnrollmentStatus.Confirmed)
+            return EnrollmentErrors.CannotDropConfirmedEnrollment;
+
+        Status = EnrollmentStatus.Dropped;
+        RaiseDomainEvent(new EnrollmentDroppedEvent(Id, DateTime.UtcNow, Status));
+        return Result.Success();
+    }
+
+    public bool IsEligibleForRefund() => Status == EnrollmentStatus.Confirmed;
 }

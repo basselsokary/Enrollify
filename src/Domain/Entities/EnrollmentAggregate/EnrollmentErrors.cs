@@ -12,10 +12,10 @@ public class EnrollmentErrors
         Error.Validation("User.Id.Required", "User ID cannot be empty.");
     public static Error CourseIdRequired =>
         Error.Validation("Course.Id.Required", "Course ID cannot be empty.");
-    public static Error PaymentIdRequired =>
-        Error.Validation("Payment.Id.Required", "Payment ID cannot be empty.");
     public static Error AlreadyEnrolled =>
         Error.Validation("Enrollment.AlreadyEnrolled", "User is already enrolled in the course.");
     public static Error AlreadyPaid =>
         Error.Validation("Enrollment.AlreadyPaid", "Enrollment is already marked as paid.");
+    public static Error CannotDropConfirmedEnrollment =>
+        Error.Validation("Enrollment.CannotDropConfirmed", "Cannot drop an enrollment that is already confirmed.");
 }
