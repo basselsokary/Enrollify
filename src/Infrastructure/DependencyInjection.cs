@@ -5,10 +5,7 @@ using Application.Common.Interfaces.Infrastructure;
 using Application.Common.Interfaces.ReadRepositories;
 using Domain.Repositories;
 using Infrastructure.Authentication;
-using Infrastructure.Authorization;
-using Infrastructure.Authorization.Handlers;
 using Infrastructure.BackgroundJobs;
-using Infrastructure.Caching;
 using Infrastructure.Events;
 using Infrastructure.ExternalServices.Payment;
 using Infrastructure.Identity;
@@ -20,7 +17,6 @@ using Infrastructure.Persistence.WriteContext.Context;
 using Infrastructure.Persistence.WriteContext.Interceptors;
 using Infrastructure.Persistence.WriteContext.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,17 +31,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext(configuration);
-
         // Add Identity & Authentication & Authorization
         services.AddIdentity()
             .AddJwtAuthentication(configuration)
             .AddAuthorization();
         
-        services.AddMemoryCache();
-        
-        // Add Repositories & Unit of Work
-        services.AddRepositories(configuration);
+        // Add DbContext, and Repositories & Unit of Work
+        services.AddDbContext(configuration)
+            .AddRepositories(configuration);
 
         services.AddExternalServices(configuration);
 
@@ -53,7 +46,6 @@ public static class DependencyInjection
         services.AddBackgroundJobs(configuration);
 
         services.AddOtherServices(configuration);
-        services.AddSeeding();
 
         return services;
     }
@@ -62,7 +54,6 @@ public static class DependencyInjection
     {
         services.AddScoped<CurrentUserService>();
         services.AddScoped<IUserContext, CurrentUserService>();
-        services.AddScoped<ICacheService, BaseCache>();
         services.AddSingleton<OutboxChannel>();
         
         services.AddScoped<DomainEventDispatcher>();
@@ -81,12 +72,6 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddSeeding(this IServiceCollection services)
-    {
-        services.AddScoped<DatabaseSeeder>();
-        return services;
-    }
-
     private static IServiceCollection AddDbContext(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -97,36 +82,32 @@ public static class DependencyInjection
 
         services.AddDbContext<WriteDbContext>((serviceProvider, options) =>
         {
-            options.ConfigureDbContext(configuration);
+            options.UseNpgsql(
+                configuration.GetConnectionString("WriteDb"),
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(WriteDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(5),
+                        errorCodesToAdd: null);
+                });
+
+            options.EnableSensitiveDataLogging(false);
+            options.EnableDetailedErrors(false);
+            
             options.AddInterceptors(
                 serviceProvider.GetRequiredService<AuditableEntityInterceptor>(),
                 serviceProvider.GetRequiredService<DomainEventToOutboxInterceptor>());
         });
+
+        services.AddScoped<DatabaseSeeder>();
 
         // Read Db
         services.AddScoped<MongoDbContext>();
         MongoDbContext.Configure();
 
         return services;
-    }
-
-    private static void ConfigureDbContext(
-        this DbContextOptionsBuilder options,
-        IConfiguration configuration)
-    {
-        options.UseNpgsql(
-            configuration.GetConnectionString("WriteDb"),
-            b =>
-            {
-                b.MigrationsAssembly(typeof(WriteDbContext).Assembly.FullName);
-                b.EnableRetryOnFailure(
-                    maxRetryCount: 3,
-                    maxRetryDelay: TimeSpan.FromSeconds(5),
-                    errorCodesToAdd: null);
-            });
-
-        options.EnableSensitiveDataLogging(false);
-        options.EnableDetailedErrors(false);
     }
 
     private static IServiceCollection AddIdentity(
@@ -198,31 +179,6 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddAuthorization(this IServiceCollection services)
-    {
-        services.AddScoped<IAuthorizationHandler, RolesHandler>();
-        services.AddScoped<IAuthorizationHandler, EmailVerifiedHandler>();
-        services.AddScoped<IAuthorizationHandler, AccountActiveHandler>();
-
-        services.AddAuthorization(options =>
-        {
-            /// Here we can add custom policies if needed.
-
-            options.AddPolicy(Policies.Admins, policy =>
-                policy.AddRequirements(new RolesRequirement(["Admin"])));
-
-            // Any endpoint with [Authorize] but no policy requires authentication
-            options.DefaultPolicy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build();
-
-            // Endpoints with [AllowAnonymous] are not affected
-            options.FallbackPolicy = null;
-        });
-
-        return services;
-    }
-
     private static IServiceCollection AddExternalServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -236,10 +192,11 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.Configure<StripeOptions>(configuration.GetSection("Stripe"));
+        
         var stripeSettings = configuration.GetSection("Stripe").Get<StripeOptions>();
         Stripe.StripeConfiguration.ApiKey = stripeSettings!.SecretKey;
 
-        services.Configure<StripeOptions>(configuration.GetSection("Stripe"));
         services.AddScoped<IPaymentService, StripePaymentService>();
 
         return services;
