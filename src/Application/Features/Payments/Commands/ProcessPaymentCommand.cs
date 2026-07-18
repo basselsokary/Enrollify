@@ -21,6 +21,9 @@ internal sealed class ProcessPaymentCommandHandler(
             command.SignatureHeader,
             cancellationToken);
         
+        if (signatureResult.Error.Code == PaymentErrors.UnhandledEventType.Code)
+            return Result.Success(Guid.Empty);
+
         if (signatureResult.Failed)
             return signatureResult.Error;
         

@@ -61,7 +61,7 @@ public class Payment : BaseAuditableEntity, IAggregateRoot
         Status = PaymentStatus.Completed;
         PaidAt = DateTime.UtcNow;
 
-        RaiseDomainEvent(new PaymentCompletedEvent(UserId, EnrollmentId, PaidAt.Value, Status));
+        RaiseDomainEvent(new PaymentCompletedEvent(Id, PaidAt.Value, Status));
     }
 
     public Result Fail()

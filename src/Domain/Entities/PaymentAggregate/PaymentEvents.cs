@@ -27,10 +27,9 @@ public sealed class PaymentCreatedEvent(
 }
 
 public sealed class PaymentCompletedEvent(
-    Guid userId, Guid enrollmentId, DateTime paidAt, PaymentStatus status) : BaseEvent
+    Guid paymentId, DateTime paidAt, PaymentStatus status) : BaseEvent
 {
-    public Guid UserId { get; } = userId;
-    public Guid EnrollmentId { get; } = enrollmentId;
+    public Guid PaymentId { get; } = paymentId;
     public DateTime PaidAt { get; } = paidAt;
     public PaymentStatus Status { get; } = status;
 }
